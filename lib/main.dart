@@ -1,9 +1,19 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'theme_service.dart';
+import 'connectivity_service.dart';
+import 'battery_service.dart';
+import 'auth_service.dart';
 import 'signin_screen.dart';
 import 'signup_screen.dart';
 import 'calculator_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();  // Initialize Firebase
+  ConnectivityService();  // Initialize the connectivity service
+  BatteryService();  // Initialize the battery service
   runApp(const CalculatorApp());
 }
 
@@ -12,98 +22,92 @@ class CalculatorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeService()),
+        Provider(create: (context) => AuthService()),  // Add AuthService provider
+      ],
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, child) {
+          return MaterialApp(
+            title: 'Flutter Demo',
+            theme: themeService.themeData,
+            home: const MainScreen(),
+          );
+        },
       ),
-      home: const MainScreen(),
     );
   }
 }
 
-class MainScreen extends StatefulWidget {
+class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-
-  static const List<Widget> _screens = <Widget>[
-    SignInScreen(),
-    SignUpScreen(),
-    CalculatorScreen(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Flutter Demo Home Page'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Drawer Header',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Calculator App'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.login), text: 'Sign In'),
+              Tab(icon: Icon(Icons.app_registration), text: 'Sign Up'),
+              Tab(icon: Icon(Icons.calculate), text: 'Calculator'),
+            ],
+          ),
+        ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              const DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Colors.blue,
                 ),
+                child: Text('Menu'),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
+              ListTile(
+                leading: const Icon(Icons.login),
+                title: const Text('Sign In'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SignInScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.app_registration),
+                title: const Text('Sign Up'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SignUpScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.calculate),
+                title: const Text('Calculator'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CalculatorScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            SignInScreen(),
+            SignUpScreen(),
+            const CalculatorScreen(),
           ],
         ),
-      ),
-      body: Center(
-        child: _screens.elementAt(_selectedIndex),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.login),
-            label: 'Sign In',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.app_registration),
-            label: 'Sign Up',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calculate),
-            label: 'Calculator',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.amber[800],
-        onTap: _onItemTapped,
       ),
     );
   }
